@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 import { CustomerWitness } from "./customerWitness.model.js";
-
+import { EmploymentStatusSchema } from "./employmentStatus.model.js";
 const addressSchema = new Schema({
     street: {
         type: String,
@@ -108,7 +108,8 @@ const customerSchema = new Schema({
         type: String,
         unique: true,
         required: true
-    }
+    },
+    employmentStatus: EmploymentStatusSchema
 }, { timestamps: true });
 
 customerSchema.pre('validate', async function (next) {
