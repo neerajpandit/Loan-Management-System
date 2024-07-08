@@ -6,27 +6,27 @@ export const EmploymentStatusSchema = new Schema({
   type: {
     type: String,
     enum: ['Salary', 'Government', 'Private', 'Business'],
-    required: true
+    // required: true
   },
   organizationName: {
     type: String,
-    required: true
+    // required: true
   },
   jobTitle: {
     type: String,
-    required: true
+    // required: true
   },
   designation: {
     type: String,
-    required: true
+    // required: true
   },
   joiningDate: {
     type: Date,
-    required: true
+    // required: true
   },
   currentOrLastAnnualSalary: {
     type: Number,
-    required: true
+    // required: true
   }
 });
 

@@ -10,35 +10,35 @@ const customerLoanSchema = new Schema({
     loanType: {
         type: String,
         enum: ["Personal Loan", "Mortgages Loan", "Home Equity Loan", "Auto Loan"],
-        required: true
+        // required: true
     },
     loanAmount: {
         type: Number,
-        required: true
+        // required: true
     },
     interest: {
         type: Number,
-        required: true
+        // required: true
     },
     loanAmountAfterInterest: {
         type: Number,
-        required: true
+        // required: true
     },
     tenure: {
         type: Number,
-        required: true
+        // required: true
     },
     monthlyEMI: {
         type: Number,
-        required: true
+        // required: true
     },
     firstEMIDate: {
         type: Date,
-        required: true
+        // required: true
     },
     latePaymentPenalty: {
         type: Number,
-        required: true
+        // required: true
     },
     isActive: {
         type: Boolean,
@@ -47,7 +47,7 @@ const customerLoanSchema = new Schema({
     customerId: {
         type: Schema.Types.ObjectId,
         ref: "Customer",
-        required: true
+        // required: true
     },
     customerID: {
         type: String,

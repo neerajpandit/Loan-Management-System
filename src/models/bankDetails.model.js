@@ -7,27 +7,27 @@ const BankDetailsSchema = new Schema({
   customerId: {
     type: Schema.Types.ObjectId,
     ref: 'Customer',
-    required: true
+    // required: true
   },
   bankAccountNo: {
     type: String,
-    required: true
+    // required: true
   },
   bankName: {
     type: String,
-    required: true
+    // required: true
   },
   ifscCode: {
     type: String,
-    required: true
+    // required: true
   },
   branchName: {
     type: String,
-    required: true
+    // required: true
   },
   accountHolderName: {
     type: String,
-    required: true
+    // required: true
   }
 });
 

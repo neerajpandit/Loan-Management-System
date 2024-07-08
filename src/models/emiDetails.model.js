@@ -5,20 +5,20 @@ const emiDetailSchema = new Schema({
     loanId: {
         type: Schema.Types.ObjectId,
         ref: "CustomerLoan",
-        required: true
+        // required: true
     },
     emiDate: {
         type: Date,
-        required: true
+        // required: true
     },
     emiAmount: {
         type: Number,
-        required: true
+        // required: true
     },
     status: {
         type: String,
         enum: ["Paid", "Upcoming"],
-        required: true
+        // required: true
     },
     submissionDate: {
         type: Date
@@ -26,11 +26,11 @@ const emiDetailSchema = new Schema({
     penalty: {
         type: String,
         enum: ["Yes", "No"],
-        required: true
+        // required: true
     },
     totalAmount: {
         type: Number,
-        required: true
+        // required: true
     }
 }, { timestamps: true });
 

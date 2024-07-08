@@ -242,6 +242,129 @@ export const registerCustomer = asyncHandler(async (req, res) => {
 
 
 
+//upload with file data testing mode
+
+import { upload } from "../middlewares/multer.middleware.js";
+
+
+export const registerCustomer1 = asyncHandler(async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const {
+            customerData,
+            nomineeData,
+            witnessData,
+            documentsData,
+            employmentStatusData,
+            bankDetailsData
+        } = req.body;
+
+        // Parse JSON strings
+        const customerDataParsed = JSON.parse(customerData);
+        const nomineeDataParsed = JSON.parse(nomineeData);
+        const witnessDataParsed = JSON.parse(witnessData);
+        const documentsDataParsed = JSON.parse(documentsData);
+        const employmentStatusDataParsed = JSON.parse(employmentStatusData);
+        const bankDetailsDataParsed = JSON.parse(bankDetailsData);
+
+        // Create Customer
+        const customer = new Customer(customerDataParsed);
+        await customer.validate();
+        await customer.save({ session });
+        console.log('Customer saved:', customer);
+
+        // Create Customer Nominees
+        if (nomineeDataParsed && nomineeDataParsed.length > 0) {
+            const savedNominees = await Promise.all(nomineeDataParsed.map(async nominee => {
+                const newNominee = new CustomerNominee({
+                    ...nominee,
+                    customerId: customer._id
+                });
+                await newNominee.validate();
+                await newNominee.save({ session });
+                return newNominee._id;
+            }));
+            customer.nominee = savedNominees;
+            console.log('Customer nominees saved:', savedNominees);
+        }
+
+        // Create Customer Witnesses
+        if (witnessDataParsed && witnessDataParsed.length > 0) {
+            const savedWitnesses = await Promise.all(witnessDataParsed.map(async witness => {
+                const newWitness = new CustomerWitness({
+                    ...witness,
+                    customerId: customer._id
+                });
+                await newWitness.validate();
+                await newWitness.save({ session });
+                return newWitness._id;
+            }));
+            customer.witness = savedWitnesses;
+            console.log('Customer witnesses saved:', savedWitnesses);
+        }
+
+        // Create Customer Documents
+        const customerDocuments = new CustomerDocuments({
+            customer: customer._id,
+            AadharCard: {
+                number: documentsDataParsed.AadharCard.number,
+                file: req.files.AadharCard ? req.files.AadharCard[0].path : undefined
+            },
+            PANCard: {
+                number: documentsDataParsed.PANCard.number,
+                file: req.files.PANCard ? req.files.PANCard[0].path : undefined
+            },
+            VoterID: {
+                number: documentsDataParsed.VoterID.number,
+                file: req.files.VoterID ? req.files.VoterID[0].path : undefined
+            },
+            DrivingLicense: {
+                number: documentsDataParsed.DrivingLicense.number,
+                file: req.files.DrivingLicense ? req.files.DrivingLicense[0].path : undefined
+            },
+            Passport: {
+                number: documentsDataParsed.Passport.number,
+                file: req.files.Passport ? req.files.Passport[0].path : undefined
+            },
+            ITRNo: {
+                number: documentsDataParsed.ITRNo.number,
+                file: req.files.ITRNo ? req.files.ITRNo[0].path : undefined
+            }
+        });
+        await customerDocuments.validate();
+        await customerDocuments.save({ session });
+        console.log('Customer documents saved:', customerDocuments);
+
+        // Create Employment Status
+        customer.employmentStatus = employmentStatusDataParsed;
+        await customer.save({ session });
+        console.log('Customer employment status saved:', employmentStatusDataParsed);
+
+        // Create Bank Details
+        const bankDetails = new BankDetails({
+            ...bankDetailsDataParsed,
+            customerId: customer._id
+        });
+        await bankDetails.validate();
+        await bankDetails.save({ session });
+        console.log('Bank details saved:', bankDetails);
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(201).json(new ApiResponse(201, 'Customer registered successfully'));
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error('Error registering customer:', error);
+        throw new ApiError(500, 'An error occurred during registration');
+    }
+});
+
+
 
 
 

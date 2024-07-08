@@ -3,12 +3,12 @@ import { Router } from "express";
 const router=Router();
 
 import {verifyJWT} from "../middlewares/auth.middleware.js"
-import { createCustomer, createCustomerWitness, createCustomerNominee, getCustomers, registerCustomer } from "../controllers/customer.controller.js";
+import { createCustomer, createCustomerWitness, createCustomerNominee, getCustomers, registerCustomer, registerCustomer1 } from "../controllers/customer.controller.js";
 import { createEmploymentStatus } from "../controllers/employMentStatus.controller.js";
 import { createBankDetails } from "../controllers/bankDetails.controller.js";
 import { getAllCustomersWithLoanDetails, getCustomerDetails } from "../controllers/customerProfile.controller.js";
 import { createCustomerDocuments } from "../controllers/customerDocument.controller.js";
-
+import { upload } from "../middlewares/multer.middleware.js";
 
 router.route("/register").post(registerCustomer)
 router.route("/createCustomer").post(createCustomer);
@@ -27,5 +27,15 @@ router.route("/customerProfiles").get(getAllCustomersWithLoanDetails)
 router.route("/:customerId/document").post(createCustomerDocuments)
 
 router.route("/:customerId").get(getCustomerDetails)
+
+
+router.route("/register1").post(upload.fields([
+    { name: 'AadharCard', maxCount: 1 },
+    { name: 'PANCard', maxCount: 1 },
+    { name: 'VoterID', maxCount: 1 },
+    { name: 'DrivingLicense', maxCount: 1 },
+    { name: 'Passport', maxCount: 1 },
+    { name: 'ITRNo', maxCount: 1 }
+]), registerCustomer1);
 
 export default router;
