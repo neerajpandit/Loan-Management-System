@@ -70,8 +70,9 @@ export const issueLoan = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
+    const {customerId} = req.params;
     try {
-        const { loanType, loanAmount, interest, tenure, firstEMIDate, latePaymentPenalty, customerId } = req.body;
+        const { loanType, loanAmount, interest, tenure, firstEMIDate, latePaymentPenalty } = req.body;
 
         // Validate customer ID
         if (!mongoose.Types.ObjectId.isValid(customerId)) {
@@ -102,7 +103,8 @@ export const issueLoan = asyncHandler(async (req, res) => {
             customerId,
             customerID: customer.customerID
         });
-
+        customer.loans.push(loan._id);
+        await customer.save();
         await loan.validate();
         await loan.save({ session });
 
@@ -219,6 +221,37 @@ const updateLoanStatus = asyncHandler(async (req, res) => {
     // Respond with success message and updated document
     res.status(200).json(new ApiResponse(200, "Loan status updated successfully", loan));
 });
+
+
+
+// Controller function to update EMI status
+export const updateEMIStatus = async (req, res) => {
+    try {
+        const { emiId, status, submissionDate } = req.body;
+
+        // Find the EMI detail by ID
+        const emiDetail = await EMIDetail.findById(emiId);
+
+        if (!emiDetail) {
+            return res.status(404).json({ message: 'EMI detail not found' });
+        }
+
+        // Update the status and submission date if the status is 'Paid'
+        if (status === 'Paid') {
+            emiDetail.status = 'Paid';
+            emiDetail.submissionDate = submissionDate || new Date();
+        } else {
+            return res.status(400).json({ message: 'Invalid status update' });
+        }
+
+        // Save the updated EMI detail
+        await emiDetail.save();
+
+        res.status(200).json({ message: 'EMI status updated successfully', emiDetail });
+    } catch (error) {
+        res.status(500).json({ message: 'An error occurred while updating the EMI status', error });
+    }
+};
 
 
 
