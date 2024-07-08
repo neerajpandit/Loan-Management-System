@@ -33,8 +33,9 @@ export const getAllCustomersWithLoanDetails = asyncHandler(async (req, res) => {
 
     // Prepare formatted customer data with loan details
     const customerWithLoanDetails = {
+      customerId: customer._id,
       name: customer.fullName,
-      customerId: customer.customerID,
+      customerID: customer.customerID,
       gender: customer.gender,
       dob: customer.dob,
       fathersName: customer.fatherName,
