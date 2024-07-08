@@ -3,6 +3,9 @@ import { Customer } from "../models/customer.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { EMIDetail } from "../models/emiDetails.model.js";
+import mongoose from "mongoose";
+
 
 const createCustomerLoan = asyncHandler(async (req, res) => {
     const {
@@ -56,6 +59,141 @@ const createCustomerLoan = asyncHandler(async (req, res) => {
     // Respond with success message and created document
     res.status(201).json(new ApiResponse(201, "Customer loan created successfully", customerLoan));
 });
+
+
+
+
+
+
+
+export const issueLoan = asyncHandler(async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { loanType, loanAmount, interest, tenure, firstEMIDate, latePaymentPenalty, customerId } = req.body;
+
+        // Validate customer ID
+        if (!mongoose.Types.ObjectId.isValid(customerId)) {
+            throw new ApiError(400, "Invalid customer ID");
+        }
+
+        const customer = await Customer.findById(customerId);
+        if (!customer) {
+            throw new ApiError(404, "Customer not found");
+        }
+
+        // Calculate loan amount after interest
+        const loanAmountAfterInterest = loanAmount + (loanAmount * interest / 100);
+
+        // Calculate monthly EMI
+        const monthlyEMI = loanAmountAfterInterest / tenure;
+
+        // Create loan
+        const loan = new CustomerLoan({
+            loanType,
+            loanAmount,
+            interest,
+            loanAmountAfterInterest,
+            tenure,
+            monthlyEMI,
+            firstEMIDate,
+            latePaymentPenalty,
+            customerId,
+            customerID: customer.customerID
+        });
+
+        await loan.validate();
+        await loan.save({ session });
+
+        // Create EMI details
+        const emiDetails = [];
+        let emiDate = new Date(firstEMIDate);
+        for (let i = 0; i < tenure; i++) {
+            const emiDetail = {
+                loanId: loan._id,
+                emiDate: new Date(emiDate),
+                emiAmount: monthlyEMI,
+                status: "Upcoming",
+                submissionDate: null,
+                penalty: "No",
+                totalAmount: monthlyEMI
+            };
+            emiDetails.push(emiDetail);
+
+            // Move to next month
+            emiDate.setMonth(emiDate.getMonth() + 1);
+        }
+
+        await EMIDetail.insertMany(emiDetails, { session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(201).json(new ApiResponse(201, 'Loan issued and EMI details saved successfully'));
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error('Error issuing loan:', error);
+        throw new ApiError(500, 'An error occurred during loan issuance');
+    }
+});
+
+
+
+
+
+export const getLoanDetails = asyncHandler(async (req, res) => {
+    const { loanId } = req.params;
+
+    // Validate loan ID
+    if (!mongoose.Types.ObjectId.isValid(loanId)) {
+        throw new ApiError(400, "Invalid loan ID");
+    }
+
+    // Fetch loan details using aggregation pipeline
+    const loanDetails = await CustomerLoan.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(loanId) } },
+        {
+            $lookup: {
+                from: "emidetails", // Ensure this matches your collection name in the database
+                localField: "_id",
+                foreignField: "loanId",
+                as: "emiDetails"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                loanID: 1,
+                loanType: 1,
+                loanAmount: 1,
+                interest: 1,
+                loanAmountAfterInterest: 1,
+                tenure: 1,
+                monthlyEMI: 1,
+                firstEMIDate: 1,
+                latePaymentPenalty: 1,
+                isActive: 1,
+                customerID: 1,
+                emiDetails: 1,
+                createdAt: 1,
+                updatedAt: 1
+            }
+        }
+    ]);
+
+    if (!loanDetails.length) {
+        throw new ApiError(404, "Loan not found");
+    }
+
+    // Respond with loan details
+    res.status(200).json(new ApiResponse(200, 'Loan details retrieved successfully', loanDetails[0]));
+});
+
+
+
 
 
 // Update Loan Status

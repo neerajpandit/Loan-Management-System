@@ -242,43 +242,6 @@ export const registerCustomer = asyncHandler(async (req, res) => {
 
 
 
-export const getCustomerDetails = asyncHandler(async (req, res) => {
-    const { customerId } = req.params;
-
-    // Validate customer ID
-    if (!mongoose.Types.ObjectId.isValid(customerId)) {
-        throw new ApiError(400, "Invalid customer ID");
-    }
-
-    // Fetch customer details including nominees and witnesses
-    const customer = await Customer.findById(customerId)
-        .populate({
-            path: 'nominee',
-            model: 'CustomerNominee'
-        })
-        .populate({
-            path: 'witness',
-            model: 'CustomerWitness'
-        })
-        .populate('employmentStatus')
-        .populate('loans')
-        .populate('documents')
-        .populate('bankDetails');
-
-    if (!customer) {
-        throw new ApiError(404, "Customer not found");
-    }
-
-    // Respond with customer details
-    res.status(200).json(new ApiResponse(200, 'Customer details retrieved successfully', customer));
-});
-
-
-
-
-
-
-
 
 
 
@@ -518,17 +481,17 @@ const deleteCustomer = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponse(200, "Customer deleted successfully"));
 });
 
-// Get a customer by ID
-const getCustomer = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+// // Get a customer by ID
+// const getCustomer = asyncHandler(async (req, res) => {
+//     const { id } = req.params;
 
-    const customer = await Customer.findById(id);
+//     const customer = await Customer.findById(id);
 
-    if (!customer) {
-        throw new ApiError(404, "Customer not found");
-    }
+//     if (!customer) {
+//         throw new ApiError(404, "Customer not found");
+//     }
 
-    res.status(200).json(new ApiResponse(200, "Customer retrieved successfully", customer));
-});
+//     res.status(200).json(new ApiResponse(200, "Customer retrieved successfully", customer));
+// });
 
-export { createCustomer,getCustomers,createCustomerWitness,createCustomerNominee, updateCustomer,updateNominee, deleteCustomer, getCustomer };
+export { createCustomer,getCustomers,createCustomerWitness,createCustomerNominee, updateCustomer,updateNominee, deleteCustomer };

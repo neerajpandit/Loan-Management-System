@@ -62,7 +62,7 @@ customerLoanSchema.pre('validate', async function (next) {
         let isUnique = false;
         while (!isUnique) {
             const randomNumber = Math.floor(100000 + Math.random() * 900000);
-            this.loanID = `LMS${randomNumber}`;
+            this.loanID = `LN${randomNumber}`;
 
             const existingLoan = await mongoose.model('CustomerLoan').findOne({ loanID: this.loanID });
             if (!existingLoan) {

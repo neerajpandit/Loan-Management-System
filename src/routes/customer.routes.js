@@ -20,7 +20,7 @@ router.route("/:customerId/createEmployStatus").put(createEmploymentStatus)
 
 router.route("/:customerId/bankDetails").post(createBankDetails)
 
-router.route("/:customerId/details").get(getCustomerDetails)
+// router.route("/:customerId/details").get(getCustomerDetails)
 
 router.route("/customerProfiles").get(getAllCustomersWithLoanDetails)
 
