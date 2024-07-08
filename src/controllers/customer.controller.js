@@ -365,6 +365,87 @@ export const registerCustomer1 = asyncHandler(async (req, res) => {
 });
 
 
+//avatar file with
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+import path from 'path';
+
+export const registerCustomer2 = async (req, res) => {
+    const uploadDir = path.join(__dirname, '..', 'public', 'temp');
+    const avatarFilePath = req.file ? path.join(uploadDir, req.file.filename) : null;
+
+    try {
+        const {
+            customerData,
+            nomineeData,
+            witnessData,
+            documentsData,
+            employmentStatusData,
+            bankDetailsData
+        } = req.body;
+
+        // Add avatar path to customer data
+        if (avatarFilePath) {
+            customerData.avatar = avatarFilePath;
+        }
+        console.log(req.body)
+        // Create customer
+        const customer = new Customer(customerData);
+
+        // Save customer to get the ID
+        await customer.save();
+
+        // Save nominees
+        const nomineeIds = [];
+        for (const nominee of nomineeData) {
+            const nomineeDoc = new CustomerNominee({ ...nominee, customer: customer._id });
+            await nomineeDoc.save();
+            nomineeIds.push(nomineeDoc._id);
+        }
+
+        // Save witnesses
+        const witnessIds = [];
+        for (const witness of witnessData) {
+            const witnessDoc = new CustomerWitness({ ...witness, customer: customer._id });
+            await witnessDoc.save();
+            witnessIds.push(witnessDoc._id);
+        }
+
+        // Save documents
+        const documentIds = [];
+        for (const [key, doc] of Object.entries(documentsData)) {
+            const documentDoc = new Document({ ...doc, customer: customer._id });
+            await documentDoc.save();
+            documentIds.push(documentDoc._id);
+        }
+
+        // Save employment status
+        const employmentStatus = new EmploymentStatus({ ...employmentStatusData, customer: customer._id });
+        await employmentStatus.save();
+
+        // Save bank details
+        const bankDetails = new BankDetails({ ...bankDetailsData, customer: customer._id });
+        await bankDetails.save();
+
+        // Update customer with related data IDs
+        customer.nominee = nomineeIds;
+        customer.witness = witnessIds;
+        customer.documents = documentIds;
+        customer.employmentStatus = employmentStatus._id;
+        customer.bankDetails = bankDetails._id;
+        await customer.save();
+
+        res.status(201).json({ message: 'Customer registered successfully', customer });
+    } catch (error) {
+        res.status(500).json({ message: 'An error occurred while registering the customer', error });
+    }
+};
+
+
+
 
 
 

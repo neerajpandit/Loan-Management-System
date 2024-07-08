@@ -86,6 +86,9 @@ const customerSchema = new Schema({
         type: addressSchema,
         // required: [true, "Permanent address is required"]
     },
+    avatar:{
+        type: String
+    },
     nominee: [
         {
         type: mongoose.Schema.Types.ObjectId,
