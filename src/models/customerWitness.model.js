@@ -59,7 +59,7 @@ const customerWitnessSchema = new Schema({
     customerId: {
         type: Schema.Types.ObjectId,
         ref: "Customer",
-        required: true
+        // required: true
     }
 }, { timestamps: true });
 

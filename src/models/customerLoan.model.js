@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const customerLoanSchema = new Schema({
     loanID: {
         type: String,
-        required: true,
+        // required: true,
         unique: true,
     },
     loanType: {
@@ -51,7 +51,7 @@ const customerLoanSchema = new Schema({
     },
     customerID: {
         type: String,
-        required: true
+        // required: true
     }
     
 }, { timestamps: true });
