@@ -4,75 +4,80 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { EMIDetail } from "../models/emiDetails.model.js";
+import { CollateralDetails } from "../models/loanCollateral.model.js";
 import mongoose from "mongoose";
 
 
-const createCustomerLoan = asyncHandler(async (req, res) => {
-    const {
-        loanType,
-        interest,
-        loanAmount,
-        tenure,
-        firstEMIDate,
-        latePaymentPenalty,
-        customerID // Assuming you pass customerID in the request body
-    } = req.body;
+//calculateEMI
+export const calculateEMI = asyncHandler(async (req, res) => {
+    const { loanType, loanAmount, interest, tenure, firstEMIDate, latePaymentPenalty, collateral } = req.body;
 
-    // Validate request body fields
-    if (!loanType || !interest || !loanAmount || !tenure || !firstEMIDate || !latePaymentPenalty || !customerID) {
-        throw new ApiError(400, "All fields including customerID are required");
+    // Generate a unique loan ID (similar to the pre-validate hook in the CustomerLoan schema)
+    let isUnique = false;
+    let loanID;
+    while (!isUnique) {
+        const randomNumber = Math.floor(100000 + Math.random() * 900000);
+        loanID = `LN${randomNumber}`;
+        const existingLoan = await CustomerLoan.findOne({ loanID });
+        if (!existingLoan) {
+            isUnique = true;
+        }
     }
 
-    // Check if Customer exists
-    const customer = await Customer.findById(customerID);
-    if (!customer) {
-        throw new ApiError(404, "Customer not found");
-    }
-
-    // Calculate loanAmountAfterInterest and monthlyEMI
+    // Calculate loan amount after interest
     const loanAmountAfterInterest = loanAmount + (loanAmount * interest / 100);
+
+    // Calculate monthly EMI
     const monthlyEMI = loanAmountAfterInterest / tenure;
 
+    // Calculate loan issue date (assuming current date)
+    const loanIssueDate = new Date();
 
-    // Create CustomerLoan document
-    const customerLoan = new CustomerLoan({
+    // Create EMI details
+    const emiDetails = [];
+    let emiDate = new Date(firstEMIDate);
+    for (let i = 0; i < tenure; i++) {
+        const emiDetail = {
+            emiDate: new Date(emiDate),
+            emiAmount: monthlyEMI,
+            status: "Upcoming",
+            submissionDate: null,
+            penalty: "No",
+            totalAmount: monthlyEMI
+        };
+        emiDetails.push(emiDetail);
+
+        // Move to next month
+        emiDate.setMonth(emiDate.getMonth() + 1);
+    }
+
+    res.status(200).json(new ApiResponse(200, {
+        loanID,
         loanType,
-        interest,
+        loanIssueDate,
         loanAmount,
+        interest,
+        firstEMIDate,
         loanAmountAfterInterest,
         tenure,
         monthlyEMI,
-        firstEMIDate,
         latePaymentPenalty,
-        customerId: customer._id,
-        customerID: customer.customerID
-        
-    });
-
-    // Save CustomerLoan
-    await customerLoan.save();
-
-
-       // Update Customer with the new CustomerWitness reference
-       customer.loans.push(customerLoan._id);
-       await customer.save();
-    // Respond with success message and created document
-    res.status(201).json(new ApiResponse(201, "Customer loan created successfully", customerLoan));
+        emiDetails,
+        collateral
+    }));
 });
 
 
-
-
-
-
-
+//loan Issue
 export const issueLoan = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    const {customerId} = req.params;
+    const { customerId } = req.params;
+    let collateralDetails;
+
     try {
-        const { loanType, loanAmount, interest, tenure, firstEMIDate, latePaymentPenalty } = req.body;
+        const { loanType, loanAmount, interest, tenure, firstEMIDate, loanIssueDate, latePaymentPenalty, collateral } = req.body;
 
         // Validate customer ID
         if (!mongoose.Types.ObjectId.isValid(customerId)) {
@@ -98,15 +103,19 @@ export const issueLoan = asyncHandler(async (req, res) => {
             loanAmountAfterInterest,
             tenure,
             monthlyEMI,
+            loanIssueDate,
             firstEMIDate,
             latePaymentPenalty,
             customerId,
             customerID: customer.customerID
         });
-        customer.loans.push(loan._id);
-        await customer.save();
+        
         await loan.validate();
         await loan.save({ session });
+
+        // Add loan ID to the customer's loans array
+        customer.loans.push(loan._id);
+        await customer.save({ session });
 
         // Create EMI details
         const emiDetails = [];
@@ -129,19 +138,26 @@ export const issueLoan = asyncHandler(async (req, res) => {
 
         await EMIDetail.insertMany(emiDetails, { session });
 
+        // Save collateral details if provided
+        if (collateral) {
+            collateralDetails = new CollateralDetails({
+                loanId: loan._id,
+                collateral
+            });
+            await collateralDetails.save({ session });
+        }
+
         await session.commitTransaction();
-        session.endSession();
 
-        res.status(201).json(new ApiResponse(201, 'Loan issued and EMI details saved successfully'));
-
+        res.status(201).json(new ApiResponse(201, collateralDetails, 'Loan issued and EMI details saved successfully'));
     } catch (error) {
         await session.abortTransaction();
-        session.endSession();
         console.error('Error issuing loan:', error);
         throw new ApiError(500, 'An error occurred during loan issuance');
+    } finally {
+        session.endSession();
     }
 });
-
 
 
 
@@ -196,10 +212,8 @@ export const getLoanDetails = asyncHandler(async (req, res) => {
 
 
 
-
-
 // Update Loan Status
-const updateLoanStatus = asyncHandler(async (req, res) => {
+export const updateLoanStatus = asyncHandler(async (req, res) => {
     const { loanID } = req.params;
     const { isActive } = req.body; // Assuming you pass the status in the request body
 
@@ -256,4 +270,4 @@ export const updateEMIStatus = async (req, res) => {
 
 
 
-export { createCustomerLoan,updateLoanStatus };
+
